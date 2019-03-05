@@ -21,8 +21,8 @@ minL = float('inf')
 Xw = 0.95
 Yw = 1.0
 Zw = 1.09
-uw = (4 * Xw)/(Xw + 15 * Yw + 3 * Zw)
-vw = (9 * Yw)/(Xw + 15 * Yw + 3 * Zw)
+uw = (4 * Xw)/(Xw + (15 * Yw) + (3 * Zw))
+vw = (9 * Yw)/(Xw + (15 * Yw) + (3 * Zw))
 # print("uw, vw ", uw, vw)
 
 if(w1<0 or h1<0 or w2<=w1 or h2<=h1 or w2>1 or h2>1) :
@@ -73,7 +73,7 @@ def invgamma(x):
         x = ((x + 0.055) / 1.055) ** 2.4
     return x
 
-def rgbToxyz(b, g, r):
+def rgbToxyz(r, g, b):
     a1 = np. array([r,g, b])
     a2 = np. array([[0.412453, 0.35758, 0.180423], [0.212671, 0.71516, 0.072169], [0.019334, 0.119193, 0.950227]])
     # print(np.dot(a2, a1))
@@ -91,6 +91,10 @@ def XYZToLuv(X, Y, Z):
         L = (116 * (t**(1/3))) - 16
     else:
         L = 903.3 * t
+    if L < 0 :
+        L = 0
+    if L > 100:
+        L = 100
     d = X + (15 * Y) + (3 * Z)
     if d!=0:
         uPrime = 4 * X/d
@@ -98,8 +102,8 @@ def XYZToLuv(X, Y, Z):
     else:
         uPrime = 0
         vPrime = 0
-    u = 13 * L * (uPrime - uw)
-    v = 13 * L * (vPrime - vw)
+    u = (13 * L) * (uPrime - uw)
+    v = (13 * L) * (vPrime - vw)
     return L, u, v
 
 def linearScale(x, max_value, min_value):
@@ -145,6 +149,10 @@ def XYZtoRGB(X, Y, Z):
             a3[i] = 1
         if a3[i] < 0:
             a3[i] = 0
+        if a3[i] < 0.00304:
+            a3[i] = a3[i] * 12.92
+        else:
+            a3[i] = (1.055 * (a3[i] ** (1/2.4))) - 0.055
         # print("a3 ", i, a3[i])
     R, G, B = a3[0] * 255, a3[1] * 255, a3[2] * 255
     return R, G, B
@@ -156,13 +164,13 @@ finalOutputImage = np.zeros([rows, cols, bands], dtype=np.uint8)
 for i in range(0, rows) :
     for j in range(0, cols) :
 
-        r, g, b = inputImage[i, j]
+        b, g, r = inputImage[i, j]
 
         # print()
         # print("RGB", r, g, b)
 
         # Converting to Non Linear RGB
-        b, g, r = b/255, g/255, r/255
+        r, g, b = r/255, g/255, b/255
         # print("Non Linear RGB ", r, g, b)
 
         # Converting to Linear RGB
@@ -170,14 +178,14 @@ for i in range(0, rows) :
         # print("Linear RGB ",r, g, b)
 
         # Converting Color Image to XYZ
-        X, Y, Z = rgbToxyz(b, g, r)
+        X, Y, Z = rgbToxyz(r, g, b)
         # print("X Y Z ", X, Y, Z)
 
         # Converting to Luv
         L, u, v = XYZToLuv(X, Y, Z)
 
         # Rounding to 3 decimals
-        L, u, v = round(L, 3), round(u, 3), round(v, 3)
+        # L, u, v = round(L, 3), round(u, 3), round(v, 3)
         # print("L, u, v ", L, u, v)
 
         minL = min(L, minL)
@@ -185,11 +193,11 @@ for i in range(0, rows) :
         outputImage[i,j] = [L, u, v]
 
 # print()
+print("MinL, MaxL", minL, maxL)
 
 # Getting Lprime then converting it to XYZ then To Linear RGB and then to Non Linear RGB
 for i in range(0, rows):
     for j in range(0, cols):
-        # print()
         L, u, v = outputImage[i, j]
         # print("Before scaling L u v ", L, u, v)
 
@@ -204,12 +212,11 @@ for i in range(0, rows):
         # Converting XYZ to RGB
         R, G, B = XYZtoRGB(X, Y, Z)
         # print("R G B", R, G, B)
-        finalOutputImage[i, j] = [R, G, B]
+        finalOutputImage[i, j] = [B, G, R]
 
 cv2.imshow("output:", finalOutputImage)
-cv2.imwrite("Program 1"+name_output, finalOutputImage);
+cv2.imwrite("First_Program_"+name_output, finalOutputImage);
 
-"""
 # Second Program
 outputImage = np.zeros([rows, cols, bands], dtype=np.uint8)
 
@@ -220,6 +227,7 @@ for i in range(0, rows) :
 cv2.imshow("output:", outputImage)
 cv2.imwrite(name_output, outputImage);
 
+"""
 # Third Program
 outputImage = np.zeros([rows, cols, bands], dtype=np.uint8)
 
